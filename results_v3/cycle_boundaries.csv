@@ -1,0 +1,11 @@
+cycle,start_s,end_s,duration_s,phase_detected,n_red_steps,n_green_steps,mean_speed_kmh,note
+1,37.87,86.03,48.17,True,13,721,8.89,Detected from vehicle motion
+2,86.03,151.17,65.13,True,5,998,8.73,Detected from vehicle motion
+3,151.17,201.53,50.37,True,2,656,9.4,Detected from vehicle motion
+4,201.53,287.83,86.3,True,25,1190,9.28,Detected from vehicle motion
+5,287.83,377.17,89.33,True,21,395,12.55,Detected from vehicle motion
+6,377.17,454.33,77.17,True,4,47,11.01,Detected from vehicle motion
+7,454.33,621.83,167.5,True,30,210,13.03,Detected from vehicle motion
+8,621.83,674.93,53.1,True,13,10,4.01,Detected from vehicle motion
+9,674.93,749.13,74.2,True,25,7,4.72,Detected from vehicle motion
+10,749.13,898.57,149.43,True,18,7,4.08,Detected from vehicle motion
