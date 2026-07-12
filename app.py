@@ -123,10 +123,11 @@ st.markdown(
         .phase-strip {{
             display: flex;
             align-items: center;
+            justify-content: space-between;
             background: {COLORS['surface']};
             border: 1px solid {COLORS['line']};
             border-radius: 6px;
-            padding: 0.9rem 1.2rem;
+            padding: 1.1rem 1.6rem;
             margin-bottom: 1.8rem;
             overflow-x: auto;
         }}
@@ -135,6 +136,7 @@ st.markdown(
             align-items: center;
             gap: 0.5rem;
             white-space: nowrap;
+            flex-shrink: 0;
         }}
         .phase-dot {{
             width: 9px;
@@ -158,17 +160,89 @@ st.markdown(
             color: {COLORS['text']};
         }}
         .phase-connector {{
-            width: 28px;
+            flex: 1;
+            min-width: 20px;
             height: 1px;
             background: {COLORS['line']};
-            margin: 0 0.7rem;
-            flex-shrink: 0;
+            margin: 0 0.8rem;
         }}
         /* sidebar as a control panel */
         section[data-testid="stSidebar"] {{
             background-color: {COLORS['surface']};
             border-right: 1px solid {COLORS['line']};
         }}
+        section[data-testid="stSidebar"] > div {{
+            padding-top: 1.5rem;
+        }}
+        section[data-testid="stSidebar"] .block-container {{
+            padding-top: 0.5rem;
+        }}
+        /* widget labels — Streamlit defaults are too faint on dark bg */
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] .stMarkdown p {{
+            color: {COLORS['text']} !important;
+            font-size: 0.82rem !important;
+            font-weight: 500 !important;
+            opacity: 1 !important;
+        }}
+        /* text input */
+        section[data-testid="stSidebar"] .stTextInput input {{
+            background-color: {COLORS['bg']} !important;
+            color: {COLORS['text']} !important;
+            border: 1px solid {COLORS['line']} !important;
+            border-radius: 4px !important;
+        }}
+        section[data-testid="stSidebar"] .stTextInput input::placeholder {{
+            color: {COLORS['muted']} !important;
+        }}
+        section[data-testid="stSidebar"] .stTextInput input:focus {{
+            border-color: {COLORS['amber']} !important;
+            box-shadow: 0 0 0 1px {COLORS['amber']} !important;
+        }}
+        /* file uploader */
+        section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {{
+            background-color: {COLORS['bg']} !important;
+            border: 1px dashed {COLORS['line']} !important;
+            border-radius: 6px !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] div,
+        section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] span,
+        section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] small {{
+            color: {COLORS['muted']} !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button {{
+            background-color: transparent !important;
+            color: {COLORS['cyan']} !important;
+            border: 1px solid {COLORS['cyan']} !important;
+            border-radius: 4px !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button:hover {{
+            background-color: rgba(82,196,208,0.1) !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stFileUploaderFile"] {{
+            background-color: {COLORS['bg']} !important;
+            border-radius: 4px !important;
+        }}
+        /* slider */
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] > div > div {{
+            background: {COLORS['line']} !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] > div > div > div {{
+            background: {COLORS['amber']} !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [role="slider"] {{
+            background-color: {COLORS['amber']} !important;
+            border-color: {COLORS['amber']} !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-testid="stTickBarMin"],
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-testid="stTickBarMax"] {{
+            color: {COLORS['muted']} !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stThumbValue"] {{
+            color: {COLORS['amber']} !important;
+            font-family: 'JetBrains Mono', monospace !important;
+        }}
+        /* run button */
         section[data-testid="stSidebar"] .stButton button {{
             background-color: {COLORS['amber']};
             color: #1A1200;
@@ -176,18 +250,43 @@ st.markdown(
             border: none;
             border-radius: 4px;
             width: 100%;
+            padding: 0.6rem 0;
+            margin-top: 0.4rem;
         }}
         section[data-testid="stSidebar"] .stButton button:hover {{
             background-color: #FFC266;
+            color: #1A1200;
+        }}
+        section[data-testid="stSidebar"] .stButton button:disabled {{
+            background-color: {COLORS['line']};
+            color: {COLORS['muted']};
+        }}
+        /* sidebar section dividers */
+        section[data-testid="stSidebar"] hr {{
+            border-color: {COLORS['line']};
+            margin: 1.4rem 0;
+        }}
+        /* main content breathing room */
+        .block-container {{
+            padding-top: 2.5rem;
+            max-width: 1200px;
         }}
         /* empty state */
         .empty-state {{
             border: 1px dashed {COLORS['line']};
             border-radius: 6px;
-            padding: 3rem 1.5rem;
+            padding: 3.5rem 1.5rem;
             text-align: center;
             color: {COLORS['muted']};
             font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.6rem;
+        }}
+        .empty-state-icon {{
+            font-size: 1.4rem;
+            opacity: 0.5;
         }}
         .severity-tag {{
             font-family: 'JetBrains Mono', monospace;
@@ -209,7 +308,8 @@ st.markdown('<div class="signal-title">SIGNAL</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="signal-sub">Upload intersection footage. Vehicles are tracked, '
     'leader/follower pairs resolved, and conflicts scored by time-to-collision (TTC) '
-    'and post-encroachment time (PET).</div>',
+    'and post-encroachment time (PET).</div>'
+    f'<div style="height:1px; background:{COLORS["line"]}; margin-bottom:1.6rem;"></div>',
     unsafe_allow_html=True,
 )
 
@@ -358,8 +458,10 @@ if conflict_df is not None and not conflict_df.empty:
 else:
     st.markdown(
         '<div class="empty-state">'
-        'No results yet. Upload footage in the sidebar and run the analysis — '
-        'the phase strip above will track progress through each pipeline stage.'
-        '</div>',
+        '<div class="empty-state-icon">🚦</div>'
+        '<div style="color: {text}; font-weight: 600; font-size: 0.95rem;">Awaiting footage</div>'
+        '<div>Upload a clip in the sidebar and run the analysis — '
+        'the phase strip above will track progress through each pipeline stage.</div>'
+        '</div>'.format(text=COLORS["text"]),
         unsafe_allow_html=True,
     )
