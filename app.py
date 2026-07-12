@@ -9,6 +9,10 @@ WIRING NOTES (three spots marked TODO — I don't have visibility into your
   1. run_pipeline()        -> subprocess command + args
   2. load_conflict_table() -> path + column names inside results_v3/
   3. load_annotated_video()-> output video filename pattern
+
+CHANGE NOTE: this revision only reshapes two sections — "Analyze footage"
+(Step 1) and "Pipeline progress" (Step 2). All backend wiring, session
+state, and the Results section are unchanged.
 """
 
 import subprocess
@@ -43,14 +47,16 @@ COLORS = {
     "red": "#C43D2E",           # severe conflict
 }
 
+# code, short label, script, one-line description shown under the tracker
+# while that stage is the active one
 PIPELINE_STAGES = [
-    ("01", "Extract", "01_data_extractor.py"),
-    ("02", "Smooth", "02_trajectory_smoother.py"),
-    ("03", "Leader/Follower", "03_leader_follower.py"),
-    ("04", "SSM Calc", "04_ssm_calculator.py"),
-    ("05", "Conflict Est.", "05_conflict_estimator.py"),
-    ("05b", "Signal Detect", "05b_signal_detector.py"),
-    ("07", "Annotate", "07_conflict_annotator.py"),
+    ("01", "Extract",          "01_data_extractor.py",      "Pulling raw vehicle detections and frame timestamps from the footage."),
+    ("02", "Smooth",           "02_trajectory_smoother.py", "Filtering jitter out of raw tracks to get clean per-vehicle paths."),
+    ("03", "Leader/Follower",  "03_leader_follower.py",     "Pairing vehicles that share a lane or crossing path."),
+    ("04", "SSM Calc",         "04_ssm_calculator.py",      "Computing time-to-collision and post-encroachment time per pair."),
+    ("05", "Conflict Est.",    "05_conflict_estimator.py",  "Scoring and ranking pairs by conflict severity."),
+    ("05b", "Signal Detect",   "05b_signal_detector.py",    "Reading signal phase to contextualize each conflict."),
+    ("07", "Annotate",         "07_conflict_annotator.py",  "Rendering the annotated output video and final conflict log."),
 ]
 
 # --------------------------------------------------------------------------
@@ -141,13 +147,19 @@ st.markdown(
             background: {COLORS['surface']};
             border: 1px solid {COLORS['line']};
             border-radius: 10px;
-            padding: 1.6rem 1.8rem 1.2rem 1.8rem;
-            margin-bottom: 2.6rem;
+            padding: 1.7rem 1.9rem 1.3rem 1.9rem;
+            margin-bottom: 0.6rem;
         }}
         .control-card label, .control-card .stMarkdown p {{
             color: {COLORS['ink']} !important;
             font-size: 0.82rem !important;
             font-weight: 600 !important;
+        }}
+        .field-hint {{
+            font-size: 0.74rem;
+            color: {COLORS['muted']};
+            margin-top: 0.35rem;
+            line-height: 1.4;
         }}
         .stTextInput input {{
             background-color: {COLORS['bg']} !important;
@@ -189,32 +201,126 @@ st.markdown(
             border: none;
             border-radius: 6px;
             padding: 0.6rem 1.4rem;
+            width: 100%;
         }}
         .stButton button:hover {{ background-color: #E09A24; color: #1A1200; }}
         .stButton button:disabled {{
             background-color: rgba(242,169,59,0.15);
             color: rgba(156,94,11,0.5);
         }}
+        .run-status {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: {COLORS['muted']};
+            margin-top: 0.5rem;
+            text-align: right;
+        }}
+        .card-footnote {{
+            font-size: 0.76rem;
+            color: {COLORS['muted']};
+            padding: 0.9rem 0.1rem 0.1rem 0.1rem;
+            border-top: 1px solid {COLORS['line']};
+            margin-top: 1.3rem;
+        }}
 
-        /* ---- phase strip ---- */
-        .phase-strip {{
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            row-gap: 0.9rem;
+        /* ---- pipeline tracker ---- */
+        .pipeline-card {{
             background: {COLORS['surface']};
             border: 1px solid {COLORS['line']};
             border-radius: 10px;
-            padding: 1.2rem 1.6rem;
+            padding: 1.6rem 1.9rem 1.5rem 1.9rem;
             margin-bottom: 2.6rem;
         }}
-        .phase-step {{ display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }}
-        .phase-dot {{ width: 9px; height: 9px; border-radius: 50%; background: {COLORS['line']}; flex-shrink:0; }}
-        .phase-dot.done {{ background: {COLORS['cyan']}; }}
-        .phase-dot.active {{ background: {COLORS['amber']}; box-shadow: 0 0 0 3px rgba(242,169,59,0.25); }}
-        .phase-num {{ font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: {COLORS['muted']}; }}
-        .phase-label {{ font-size: 0.8rem; color: {COLORS['ink']}; font-weight: 500; }}
-        .phase-connector {{ flex: 0 1 24px; min-width: 10px; height: 1px; background: {COLORS['line']}; margin: 0 0.7rem; }}
+        .pipeline-header {{
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }}
+        .pipeline-count {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.74rem;
+            color: {COLORS['muted']};
+        }}
+        .pipeline-track {{
+            display: flex;
+            align-items: flex-start;
+        }}
+        .pipeline-node {{
+            flex: 1;
+            position: relative;
+            text-align: center;
+            padding-top: 15px;
+        }}
+        .pipeline-node::before {{
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: -50%;
+            width: 100%;
+            height: 2px;
+            background: {COLORS['line']};
+            z-index: 0;
+        }}
+        .pipeline-node:first-child::before {{ content: none; }}
+        .pipeline-node.line-done::before {{ background: {COLORS['cyan']}; }}
+        .pipeline-node.line-active::before {{
+            background: linear-gradient(to right, {COLORS['cyan']}, {COLORS['amber']});
+        }}
+        .node-circle {{
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: -30px auto 0.6rem auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            background: {COLORS['bg']};
+            border: 2px solid {COLORS['line']};
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.66rem;
+            font-weight: 700;
+            color: {COLORS['muted']};
+        }}
+        .node-circle.done {{
+            background: {COLORS['cyan']};
+            border-color: {COLORS['cyan']};
+            color: #FFFFFF;
+        }}
+        .node-circle.active {{
+            background: {COLORS['amber']};
+            border-color: {COLORS['amber']};
+            color: #1A1200;
+            animation: nodePulse 1.6s ease-in-out infinite;
+        }}
+        @keyframes nodePulse {{
+            0%, 100% {{ box-shadow: 0 0 0 4px rgba(242,169,59,0.22); }}
+            50% {{ box-shadow: 0 0 0 7px rgba(242,169,59,0.06); }}
+        }}
+        .node-label {{
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: {COLORS['ink']};
+            line-height: 1.3;
+        }}
+        .node-label.pending {{ color: {COLORS['muted']}; }}
+        .pipeline-caption {{
+            margin-top: 1.4rem;
+            padding-top: 1rem;
+            border-top: 1px solid {COLORS['line']};
+            font-size: 0.85rem;
+            color: {COLORS['muted']};
+        }}
+        .pipeline-caption b {{ color: {COLORS['ink']}; font-weight: 600; }}
+        .pipeline-caption .tag {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: {COLORS['amber_ink']};
+            letter-spacing: 0.06em;
+            margin-right: 0.5rem;
+        }}
 
         /* ---- instruments ---- */
         .instrument-row {{
@@ -294,13 +400,34 @@ st.markdown('<div class="control-card">', unsafe_allow_html=True)
 c1, c2, c3, c4 = st.columns([2, 2.4, 1.6, 1.2])
 with c1:
     site_name = st.text_input("Intersection / site label", placeholder="e.g. MG Road x College Rd")
+    st.markdown(
+        '<div class="field-hint">Used to name the output files in results_v3/.</div>',
+        unsafe_allow_html=True,
+    )
 with c2:
     uploaded_video = st.file_uploader("Video footage", type=["mp4", "avi", "mov"])
+    st.markdown(
+        '<div class="field-hint">MP4, AVI or MOV · fixed camera angle, full intersection in frame.</div>',
+        unsafe_allow_html=True,
+    )
 with c3:
     conf_thresh = st.slider("YOLOv8 confidence", 0.1, 0.9, 0.35, 0.05)
+    st.markdown(
+        '<div class="field-hint">Lower catches more vehicles; higher cuts false detections.</div>',
+        unsafe_allow_html=True,
+    )
 with c4:
     st.markdown("<div style='height:1.9rem'></div>", unsafe_allow_html=True)
     run_clicked = st.button("Run analysis", disabled=uploaded_video is None, use_container_width=True)
+    st.markdown(
+        f'<div class="run-status">{"Upload footage to enable" if uploaded_video is None else "Ready to run"}</div>',
+        unsafe_allow_html=True,
+    )
+st.markdown(
+    '<div class="card-footnote">Runs stages 01 → 07 in sequence on the server. '
+    'A ~60s clip typically takes a few minutes — progress is tracked below.</div>',
+    unsafe_allow_html=True,
+)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # --------------------------------------------------------------------------
@@ -345,7 +472,7 @@ if run_clicked and uploaded_video is not None:
     video_path.write_bytes(uploaded_video.getbuffer())
 
     with st.status("Running pipeline stages 01 → 07...", expanded=True) as status:
-        for code, label, script in PIPELINE_STAGES:
+        for code, label, script, _ in PIPELINE_STAGES:
             st.write(f"`{code}` {label} — {script}")
         ok = run_pipeline(video_path, conf_thresh)
         status.update(label="Pipeline complete" if ok else "Pipeline failed", state="complete" if ok else "error")
@@ -358,18 +485,59 @@ st.markdown('<div id="pipeline"></div>', unsafe_allow_html=True)
 st.markdown('<div class="section-label">Step 2</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-heading">Pipeline progress</div>', unsafe_allow_html=True)
 
-active_idx = len(PIPELINE_STAGES) if st.session_state.pipeline_ran else (0 if run_clicked else -1)
-phase_html = '<div class="phase-strip">'
-for i, (code, label, _) in enumerate(PIPELINE_STAGES):
-    dot_class = "done" if i < active_idx else ("active" if i == active_idx else "")
-    phase_html += (
-        f'<div class="phase-step"><div class="phase-dot {dot_class}"></div>'
-        f'<span class="phase-num">{code}</span><span class="phase-label">{label}</span></div>'
+# active_idx: index of the currently running stage, or len(stages) once all
+# are done, or -1 before anything has been kicked off
+n_stages = len(PIPELINE_STAGES)
+if st.session_state.pipeline_ran:
+    active_idx = n_stages
+elif run_clicked:
+    active_idx = 0
+else:
+    active_idx = -1
+
+completed = min(max(active_idx, 0), n_stages) if active_idx >= 0 else 0
+
+track_html = '<div class="pipeline-track">'
+for i, (code, label, _, _desc) in enumerate(PIPELINE_STAGES):
+    if i < active_idx:
+        node_state, line_state = "done", "line-done"
+    elif i == active_idx:
+        node_state, line_state = "active", "line-active"
+    else:
+        node_state, line_state = "", ""
+    label_class = "node-label" if node_state else "node-label pending"
+    track_html += (
+        f'<div class="pipeline-node {line_state}">'
+        f'<div class="node-circle {node_state}">{code}</div>'
+        f'<div class="{label_class}">{label}</div>'
+        f'</div>'
     )
-    if i < len(PIPELINE_STAGES) - 1:
-        phase_html += '<div class="phase-connector"></div>'
-phase_html += "</div>"
-st.markdown(phase_html, unsafe_allow_html=True)
+track_html += "</div>"
+
+if active_idx == -1:
+    caption = (
+        '<span class="tag">STANDING BY</span>'
+        'Upload footage and run the analysis above to start the pipeline.'
+    )
+elif active_idx >= n_stages:
+    caption = '<span class="tag">DONE</span>All 7 stages completed — see results below.'
+else:
+    code, label, script, desc = PIPELINE_STAGES[active_idx]
+    caption = f'<span class="tag">STAGE {code}</span><b>{label}</b> — {desc}'
+
+st.markdown('<div class="pipeline-card">', unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <div class="pipeline-header">
+        <div></div>
+        <div class="pipeline-count">{completed} / {n_stages} stages complete</div>
+    </div>
+    {track_html}
+    <div class="pipeline-caption">{caption}</div>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # --------------------------------------------------------------------------
 # Results
