@@ -381,7 +381,7 @@ st.markdown(
 # --------------------------------------------------------------------------
 st.markdown('<div id="overview"></div>', unsafe_allow_html=True)
 st.markdown('<div class="signal-eyebrow">Surrogate Safety Measures · Signalized Intersections</div>', unsafe_allow_html=True)
-st.markdown('<div class="signal-title">Traffic conflict analysis, from raw footage to ranked risk.</div>', unsafe_allow_html=True)
+st.markdown('<div class="signal-title">Traffic conflict analysis, <br> from raw footage to ranked risk.</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="signal-sub">Upload intersection footage. Vehicles are tracked, leader/follower pairs '
     'resolved, and conflicts scored by time-to-collision (TTC) and post-encroachment time (PET) — '
