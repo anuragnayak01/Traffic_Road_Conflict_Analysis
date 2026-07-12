@@ -123,13 +123,13 @@ st.markdown(
         .phase-strip {{
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            flex-wrap: wrap;
+            row-gap: 0.8rem;
             background: {COLORS['surface']};
             border: 1px solid {COLORS['line']};
             border-radius: 6px;
             padding: 1.1rem 1.6rem;
             margin-bottom: 1.8rem;
-            overflow-x: auto;
         }}
         .phase-step {{
             display: flex;
@@ -160,11 +160,11 @@ st.markdown(
             color: {COLORS['text']};
         }}
         .phase-connector {{
-            flex: 1;
-            min-width: 20px;
+            flex: 0 1 24px;
+            min-width: 10px;
             height: 1px;
             background: {COLORS['line']};
-            margin: 0 0.8rem;
+            margin: 0 0.6rem;
         }}
         /* sidebar as a control panel */
         section[data-testid="stSidebar"] {{
@@ -223,16 +223,22 @@ st.markdown(
             background-color: {COLORS['bg']} !important;
             border-radius: 4px !important;
         }}
-        /* slider */
-        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] > div > div {{
-            background: {COLORS['line']} !important;
+        /* slider — belt-and-braces override; config.toml primaryColor is
+           the real fix, this is a fallback in case theme isn't applied */
+        :root {{
+            --primary-color: {COLORS['amber']};
         }}
-        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] > div > div > div {{
+        section[data-testid="stSidebar"] [data-testid="stSlider"] * {{
+            border-color: {COLORS['amber']} !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {{
+            background-color: {COLORS['amber']} !important;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] > div:nth-of-type(1) > div {{
             background: {COLORS['amber']} !important;
         }}
-        section[data-testid="stSidebar"] [data-testid="stSlider"] [role="slider"] {{
-            background-color: {COLORS['amber']} !important;
-            border-color: {COLORS['amber']} !important;
+        section[data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] > div:nth-of-type(1) {{
+            background: {COLORS['line']} !important;
         }}
         section[data-testid="stSidebar"] [data-testid="stSlider"] [data-testid="stTickBarMin"],
         section[data-testid="stSidebar"] [data-testid="stSlider"] [data-testid="stTickBarMax"] {{
@@ -258,8 +264,9 @@ st.markdown(
             color: #1A1200;
         }}
         section[data-testid="stSidebar"] .stButton button:disabled {{
-            background-color: {COLORS['line']};
-            color: {COLORS['muted']};
+            background-color: rgba(242,169,59,0.12);
+            color: rgba(242,169,59,0.55);
+            border: 1px solid rgba(242,169,59,0.25);
         }}
         /* sidebar section dividers */
         section[data-testid="stSidebar"] hr {{
@@ -269,24 +276,44 @@ st.markdown(
         /* main content breathing room */
         .block-container {{
             padding-top: 2.5rem;
-            max-width: 1200px;
+            padding-bottom: 3rem;
+            max-width: 1080px;
         }}
         /* empty state */
         .empty-state {{
             border: 1px dashed {COLORS['line']};
             border-radius: 6px;
-            padding: 3.5rem 1.5rem;
+            background: {COLORS['surface']};
+            padding: 3rem 1.5rem;
             text-align: center;
             color: {COLORS['muted']};
             font-size: 0.9rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.5rem;
         }}
         .empty-state-icon {{
-            font-size: 1.4rem;
-            opacity: 0.5;
+            width: 10px;
+            height: 32px;
+            border-radius: 5px;
+            background: {COLORS['bg']};
+            border: 1px solid {COLORS['line']};
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 4px 0;
+            margin-bottom: 0.4rem;
+        }}
+        .empty-state-icon span {{
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: {COLORS['line']};
+        }}
+        .empty-state-icon span:first-child {{
+            background: {COLORS['amber']};
         }}
         .severity-tag {{
             font-family: 'JetBrains Mono', monospace;
@@ -458,10 +485,10 @@ if conflict_df is not None and not conflict_df.empty:
 else:
     st.markdown(
         '<div class="empty-state">'
-        '<div class="empty-state-icon">🚦</div>'
-        '<div style="color: {text}; font-weight: 600; font-size: 0.95rem;">Awaiting footage</div>'
+        '<div class="empty-state-icon"><span></span><span></span><span></span></div>'
+        f'<div style="color: {COLORS["text"]}; font-weight: 600; font-size: 0.95rem;">Awaiting footage</div>'
         '<div>Upload a clip in the sidebar and run the analysis — '
         'the phase strip above will track progress through each pipeline stage.</div>'
-        '</div>'.format(text=COLORS["text"]),
+        '</div>',
         unsafe_allow_html=True,
     )
